@@ -37,7 +37,7 @@ class KostCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ImagePlaceholder(category: kost.category),
+              _KostImage(kost: kost),
               _CardContent(kost: kost),
             ],
           ),
@@ -47,13 +47,13 @@ class KostCard extends StatelessWidget {
   }
 }
 
-class _ImagePlaceholder extends StatelessWidget {
-  final String category;
+class _KostImage extends StatelessWidget {
+  final Kost kost;
 
-  const _ImagePlaceholder({required this.category});
+  const _KostImage({required this.kost});
 
   List<Color> get _gradientColors {
-    switch (category) {
+    switch (kost.label) {
       case 'Putra':
         return [const Color(0xFF8B5E3C), const Color(0xFF5C3D1E)];
       case 'Putri':
@@ -65,6 +65,25 @@ class _ImagePlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (kost.imageUrl != null && kost.imageUrl!.isNotEmpty) {
+      return SizedBox(
+        height: 136,
+        width: double.infinity,
+        child: Image.network(
+          kost.imageUrl!,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+          loadingBuilder: (_, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return _buildPlaceholder();
+          },
+        ),
+      );
+    }
+    return _buildPlaceholder();
+  }
+
+  Widget _buildPlaceholder() {
     return Container(
       height: 136,
       width: double.infinity,
@@ -130,7 +149,7 @@ class _CardContent extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  kost.name,
+                  kost.title,
                   style: GoogleFonts.dmSans(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -141,7 +160,7 @@ class _CardContent extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              CategoryBadge(category: kost.category),
+              CategoryBadge(category: kost.label),
             ],
           ),
           const SizedBox(height: 5),
@@ -155,7 +174,7 @@ class _CardContent extends StatelessWidget {
               const SizedBox(width: 3),
               Expanded(
                 child: Text(
-                  kost.address,
+                  kost.displayAddress,
                   style: GoogleFonts.dmSans(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -179,7 +198,8 @@ class _CardContent extends StatelessWidget {
                   color: AppColors.primary,
                 ),
               ),
-              _DistanceBadge(distance: kost.formattedDistance),
+              if (kost.distanceKm != null)
+                _DistanceBadge(distance: kost.formattedDistance),
             ],
           ),
         ],

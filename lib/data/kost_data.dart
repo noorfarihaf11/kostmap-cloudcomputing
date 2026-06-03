@@ -1,79 +1,41 @@
 import '../models/kost_model.dart';
 
+// Local fallback data (not used in production — app fetches from API)
 final List<Kost> dummyKostList = [
   const Kost(
     id: '1',
-    name: 'Kost Barokah Jaya',
+    title: 'Kost Barokah Jaya',
+    label: 'Putra',
+    city: 'Sidoarjo',
+    lat: -7.4478,
+    lng: 112.7183,
+    distanceKm: 0.8,
     address: 'Jl. Jenggolo No. 12, Sidoarjo',
     pricePerMonth: 750000,
-    latitude: -7.4478,
-    longitude: 112.7183,
-    distanceKm: 0.8,
-    category: 'Putra',
-    facilities: ['WiFi', 'Parkir'],
-    description:
-        'Kost nyaman di tengah kota Sidoarjo, cocok untuk mahasiswa dan karyawan. '
-        'Lingkungan aman dan bersih dengan penjaga kost 24 jam. '
-        'Dekat dengan pusat perbelanjaan, stasiun, dan fasilitas umum lainnya.',
+    description: 'WiFi, Parkir',
   ),
   const Kost(
     id: '2',
-    name: 'Kost Melati Putri',
+    title: 'Kost Melati Putri',
+    label: 'Putri',
+    city: 'Sidoarjo',
+    lat: -7.4512,
+    lng: 112.7201,
+    distanceKm: 1.2,
     address: 'Jl. Pahlawan No. 45, Sidoarjo',
     pricePerMonth: 900000,
-    latitude: -7.4512,
-    longitude: 112.7201,
-    distanceKm: 1.2,
-    category: 'Putri',
-    facilities: ['WiFi', 'AC', 'Kamar Mandi Dalam'],
-    description:
-        'Kost khusus putri dengan fasilitas lengkap dan suasana yang nyaman. '
-        'Lokasi strategis dekat pusat perbelanjaan Delta Plaza dan terminal bus. '
-        'Kamar bersih, aman, dan dikelola dengan baik oleh ibu kost yang ramah.',
+    description: 'WiFi, AC, Kamar Mandi Dalam',
   ),
   const Kost(
     id: '3',
-    name: 'Kost Harmoni',
+    title: 'Kost Harmoni',
+    label: 'Campur',
+    city: 'Sidoarjo',
+    lat: -7.4445,
+    lng: 112.7165,
+    distanceKm: 1.8,
     address: 'Jl. Majapahit No. 8, Sidoarjo',
     pricePerMonth: 650000,
-    latitude: -7.4445,
-    longitude: 112.7165,
-    distanceKm: 1.8,
-    category: 'Campur',
-    facilities: ['WiFi', 'Parkir'],
-    description:
-        'Kost campur dengan harga terjangkau dan suasana kekeluargaan yang hangat. '
-        'Cocok untuk karyawan yang mencari tempat tinggal sementara di Sidoarjo. '
-        'Fasilitas umum tersedia di area kost, lingkungan bersih dan tenang.',
-  ),
-  const Kost(
-    id: '4',
-    name: 'Kost Sejahtera',
-    address: 'Jl. Ahmad Yani No. 33, Sidoarjo',
-    pricePerMonth: 800000,
-    latitude: -7.4590,
-    longitude: 112.7220,
-    distanceKm: 2.3,
-    category: 'Putra',
-    facilities: ['WiFi', 'AC', 'Parkir'],
-    description:
-        'Kost putra modern dengan fasilitas AC dan parkir luas. '
-        'Dekat dengan kawasan industri dan perkantoran Sidoarjo, '
-        'sangat cocok untuk karyawan pabrik dan pegawai kantoran.',
-  ),
-  const Kost(
-    id: '5',
-    name: 'Kost Damai Indah',
-    address: 'Jl. Diponegoro No. 21, Sidoarjo',
-    pricePerMonth: 1100000,
-    latitude: -7.4420,
-    longitude: 112.7140,
-    distanceKm: 3.1,
-    category: 'Campur',
-    facilities: ['WiFi', 'AC', 'Kamar Mandi Dalam', 'Parkir'],
-    description:
-        'Kost premium dengan fasilitas lengkap dan keamanan terjamin. '
-        'Kamar luas dilengkapi AC, kamar mandi dalam, dan akses parkir 24 jam. '
-        'Lingkungan asri dan tenang, ideal untuk pasangan atau profesional muda.',
+    description: 'WiFi, Parkir',
   ),
 ];
