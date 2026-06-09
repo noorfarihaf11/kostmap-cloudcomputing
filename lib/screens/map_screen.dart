@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -5,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import '../theme/app_theme.dart';
+import '../data/route_service.dart';
 
 class MapScreen extends StatefulWidget {
   final double lat;
@@ -27,16 +29,25 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
   LatLng? _userLocation;
+  StreamSubscription<Position>? _positionStreamSubscription;
   bool _loadingLocation = true;
   double? _calculatedDistance;
+  RouteResult? _routeResult;
+  bool _loadingRoute = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchUserLocation();
+    _initLocationTracking();
   }
 
-  Future<void> _fetchUserLocation() async {
+  @override
+  void dispose() {
+    _positionStreamSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initLocationTracking() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -57,6 +68,7 @@ class _MapScreenState extends State<MapScreen> {
         return;
       }
 
+      // Get initial position
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
@@ -68,13 +80,72 @@ class _MapScreenState extends State<MapScreen> {
         final userLatLng = LatLng(pos.latitude, pos.longitude);
         setState(() {
           _userLocation = userLatLng;
-          _calculatedDistance =
-              widget.distanceKm ?? _haversineKm(pos.latitude, pos.longitude, widget.lat, widget.lng);
           _loadingLocation = false;
+        });
+        _calculateRoute();
+      }
+
+      // Listen to position updates in real-time
+      const locationSettings = LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 3, // Update when user moves 3 meters
+      );
+      _positionStreamSubscription = Geolocator.getPositionStream(
+        locationSettings: locationSettings,
+      ).listen((Position position) {
+        if (mounted) {
+          setState(() {
+            _userLocation = LatLng(position.latitude, position.longitude);
+          });
+          _calculateRouteQuietly();
+        }
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingLocation = false);
+    }
+  }
+
+  Future<void> _calculateRouteQuietly() async {
+    if (_userLocation == null) return;
+    try {
+      final start = _userLocation!;
+      final end = LatLng(widget.lat, widget.lng);
+      final result = await RouteService.fetchRoute(start, end);
+      if (mounted) {
+        setState(() {
+          _routeResult = result;
+          _calculatedDistance = result.distanceMeters / 1000;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _loadingLocation = false);
+      // Fail silently
+    }
+  }
+
+  Future<void> _calculateRoute() async {
+    if (_userLocation == null) return;
+    setState(() {
+      _loadingRoute = true;
+    });
+    try {
+      final start = _userLocation!;
+      final end = LatLng(widget.lat, widget.lng);
+      final result = await RouteService.fetchRoute(start, end);
+      if (mounted) {
+        setState(() {
+          _routeResult = result;
+          _calculatedDistance = result.distanceMeters / 1000;
+          _loadingRoute = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _calculatedDistance = widget.distanceKm ??
+              _haversineKm(_userLocation!.latitude, _userLocation!.longitude, widget.lat, widget.lng);
+          _loadingRoute = false;
+        });
+      }
     }
   }
 
@@ -116,7 +187,19 @@ class _MapScreenState extends State<MapScreen> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.example.kostmap',
               ),
-              if (_userLocation != null)
+              if (_routeResult != null)
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: _routeResult!.points,
+                      color: AppColors.primary,
+                      strokeWidth: 4.5,
+                      borderColor: Colors.white,
+                      borderStrokeWidth: 1.5,
+                    ),
+                  ],
+                )
+              else if (_userLocation != null)
                 PolylineLayer(
                   polylines: [
                     Polyline(
@@ -355,7 +438,11 @@ class _MapScreenState extends State<MapScreen> {
                       Text(
                         _userLocation == null
                             ? 'Lokasi tidak tersedia'
-                            : '${_calculatedDistance!.toStringAsFixed(2)} km (garis lurus)',
+                            : _loadingRoute
+                                ? 'Menghitung rute tercepat...'
+                                : _routeResult != null && _routeResult!.isRoadRoute
+                                    ? '${_routeResult!.formattedDistance} (${_routeResult!.formattedDuration})'
+                                    : '${_calculatedDistance!.toStringAsFixed(2)} km (garis lurus)',
                         style: GoogleFonts.dmSans(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
