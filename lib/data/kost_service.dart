@@ -7,7 +7,7 @@ import '../models/kost_model.dart';
 
 String get _baseUrl {
   if (kIsWeb) return 'http://localhost:3000';
-  return 'http://192.168.1.7:3000'; // physical device on same WiFi
+  return 'http://192.168.0.108:3000'; // physical device on same WiFi
 }
 
 class KostService {

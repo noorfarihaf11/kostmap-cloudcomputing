@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'placeholder_screen.dart';
+import 'kosts_map_screen.dart';
 
 class MainNavigator extends StatefulWidget {
   const MainNavigator({super.key});
@@ -15,11 +16,7 @@ class _MainNavigatorState extends State<MainNavigator> {
 
   final List<Widget> _screens = const [
     HomeScreen(),
-    PlaceholderScreen(
-      title: 'Peta',
-      icon: Icons.map_outlined,
-      message: 'Lihat semua kost di peta interaktif',
-    ),
+    KostsMapScreen(),
     PlaceholderScreen(
       title: 'Favorit',
       icon: Icons.favorite_outline_rounded,
