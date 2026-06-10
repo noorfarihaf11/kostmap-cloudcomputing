@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'theme/app_theme.dart';
-import 'screens/main_navigator.dart';
+import 'screens/login_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +23,7 @@ class KostMapApp extends StatelessWidget {
       title: 'KostMap',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
-      home: const MainNavigator(),
+      home: const LoginScreen(),
     );
   }
 }

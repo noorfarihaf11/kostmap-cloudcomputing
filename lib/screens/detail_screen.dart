@@ -35,11 +35,11 @@ class DetailScreen extends StatelessWidget {
 
   Widget _buildMapSliver() {
     final pos = LatLng(kost.lat, kost.lng);
-    final hasImage = kost.imageUrl != null && kost.imageUrl!.isNotEmpty;
+    final imageUrl = kost.validImageUrl;
 
-    Widget background = hasImage
+    Widget background = imageUrl != null
         ? Image.network(
-            kost.imageUrl!,
+            imageUrl,
             fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,

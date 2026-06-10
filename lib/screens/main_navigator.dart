@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'placeholder_screen.dart';
 import 'kosts_map_screen.dart';
+import 'profile_screen.dart';
 
 class MainNavigator extends StatefulWidget {
   const MainNavigator({super.key});
@@ -22,11 +23,7 @@ class _MainNavigatorState extends State<MainNavigator> {
       icon: Icons.favorite_outline_rounded,
       message: 'Kost yang kamu simpan akan tampil di sini',
     ),
-    PlaceholderScreen(
-      title: 'Profil',
-      icon: Icons.person_outline_rounded,
-      message: 'Kelola akun dan preferensimu',
-    ),
+    ProfileScreen(),
   ];
 
   @override
