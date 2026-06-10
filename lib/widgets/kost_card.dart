@@ -65,12 +65,13 @@ class _KostImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (kost.imageUrl != null && kost.imageUrl!.isNotEmpty) {
+    final url = kost.validImageUrl;
+    if (url != null) {
       return SizedBox(
         height: 136,
         width: double.infinity,
         child: Image.network(
-          kost.imageUrl!,
+          url,
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => _buildPlaceholder(),
           loadingBuilder: (_, child, loadingProgress) {

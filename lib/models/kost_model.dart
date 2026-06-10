@@ -77,6 +77,13 @@ class Kost {
   double get longitude => lng;
   String get displayAddress => address ?? city;
 
+  // Street View thumbnails return 403 when loaded outside a browser session
+  String? get validImageUrl {
+    if (imageUrl == null || imageUrl!.isEmpty) return null;
+    if (imageUrl!.contains('streetviewpixels')) return null;
+    return imageUrl;
+  }
+
   String get formattedDistance {
     if (distanceKm == null) return '-';
     return '${distanceKm!.toStringAsFixed(1)} km';
