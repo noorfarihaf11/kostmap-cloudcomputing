@@ -9,29 +9,34 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = AuthService().currentUser;
+    return ListenableBuilder(
+      listenable: AuthService(),
+      builder: (context, _) {
+        final user = AuthService().currentUser;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Profil'),
-        backgroundColor: AppColors.background,
-        elevation: 0,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        children: [
-          const SizedBox(height: 12),
-          _buildAvatar(user?.name ?? 'Pengguna'),
-          const SizedBox(height: 28),
-          if (user != null) ...[
-            _buildInfoCard(user),
-            const SizedBox(height: 20),
-          ],
-          _buildMenuSection(context),
-          const SizedBox(height: 32),
-        ],
-      ),
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            title: const Text('Profil'),
+            backgroundColor: AppColors.background,
+            elevation: 0,
+          ),
+          body: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            children: [
+              const SizedBox(height: 12),
+              _buildAvatar(user?.name ?? 'Pengguna'),
+              const SizedBox(height: 28),
+              if (user != null) ...[
+                _buildInfoCard(user),
+                const SizedBox(height: 20),
+              ],
+              _buildMenuSection(context),
+              const SizedBox(height: 32),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -83,7 +88,8 @@ class ProfileScreen extends StatelessWidget {
         children: [
           _infoTile(Icons.email_outlined, 'Email', user.email),
           const Divider(height: 1, indent: 52, color: AppColors.divider),
-          _infoTile(Icons.phone_outlined, 'Telepon', user.phone),
+          _infoTile(Icons.phone_outlined, 'Telepon',
+              user.phone.isNotEmpty ? user.phone : '-'),
         ],
       ),
     );
@@ -128,6 +134,12 @@ class ProfileScreen extends StatelessWidget {
       children: [
         _menuTile(
           context,
+          icon: Icons.edit_outlined,
+          label: 'Edit Profil',
+          onTap: () => _showEditProfileDialog(context),
+        ),
+        _menuTile(
+          context,
           icon: Icons.help_outline_rounded,
           label: 'Bantuan',
           onTap: () {},
@@ -157,7 +169,8 @@ class ProfileScreen extends StatelessWidget {
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
-    final color = isDestructive ? const Color(0xFFB00020) : AppColors.textPrimary;
+    final color =
+        isDestructive ? const Color(0xFFB00020) : AppColors.textPrimary;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
@@ -180,8 +193,110 @@ class ProfileScreen extends StatelessWidget {
             ? null
             : const Icon(Icons.chevron_right_rounded,
                 color: AppColors.textSecondary, size: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
+    );
+  }
+
+  void _showEditProfileDialog(BuildContext context) {
+    final user = AuthService().currentUser;
+    if (user == null) return;
+
+    final nameController = TextEditingController(text: user.name);
+    final phoneController = TextEditingController(text: user.phone);
+    final formKey = GlobalKey<FormState>();
+    String? errorMsg;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              title: Text('Edit Profil',
+                  style:
+                      GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (errorMsg != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF0F0),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(errorMsg!,
+                            style: GoogleFonts.dmSans(
+                                fontSize: 12,
+                                color: const Color(0xFFB00020))),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    TextFormField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nama',
+                        prefixIcon: Icon(Icons.person_outline_rounded),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Nama tidak boleh kosong';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Telepon',
+                        prefixIcon: Icon(Icons.phone_outlined),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text('Batal',
+                      style: GoogleFonts.dmSans(
+                          color: AppColors.textSecondary)),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (!formKey.currentState!.validate()) return;
+                    final error = await AuthService().updateProfile(
+                      name: nameController.text,
+                      phone: phoneController.text,
+                    );
+                    if (error != null) {
+                      setDialogState(() => errorMsg = error);
+                    } else {
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    }
+                  },
+                  child: Text(
+                    'Simpan',
+                    style: GoogleFonts.dmSans(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -189,30 +304,32 @@ class ProfileScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Keluar',
-          style: GoogleFonts.dmSans(fontWeight: FontWeight.w700),
-        ),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Keluar',
+            style: GoogleFonts.dmSans(fontWeight: FontWeight.w700)),
         content: Text(
           'Apakah kamu yakin ingin keluar dari akun ini?',
-          style: GoogleFonts.dmSans(fontSize: 14, color: AppColors.textSecondary),
+          style: GoogleFonts.dmSans(
+              fontSize: 14, color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Batal',
-              style: GoogleFonts.dmSans(color: AppColors.textSecondary),
-            ),
+            child: Text('Batal',
+                style:
+                    GoogleFonts.dmSans(color: AppColors.textSecondary)),
           ),
           TextButton(
-            onPressed: () {
-              AuthService().logout();
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                (_) => false,
-              );
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await AuthService().logout();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (_) => false,
+                );
+              }
             },
             child: Text(
               'Keluar',

@@ -1,8 +1,17 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../data/auth_service.dart';
+import '../data/favorite_service.dart';
 import '../models/kost_model.dart';
 import '../theme/app_theme.dart';
 import 'category_badge.dart';
+
+String _imageUrl(String rawUrl) {
+  if (!kIsWeb) return rawUrl;
+  final encoded = Uri.encodeComponent(rawUrl);
+  return 'http://localhost:3000/api/image-proxy?url=$encoded';
+}
 
 class KostCard extends StatelessWidget {
   final Kost kost;
@@ -37,12 +46,77 @@ class KostCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _KostImage(kost: kost),
+              Stack(
+                children: [
+                  _KostImage(kost: kost),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: _FavoriteButton(kost: kost),
+                  ),
+                ],
+              ),
               _CardContent(kost: kost),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FavoriteButton extends StatelessWidget {
+  final Kost kost;
+  const _FavoriteButton({required this.kost});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: FavoriteService(),
+      builder: (context, _) {
+        final isFav = FavoriteService().isFavorite(kost.id);
+        return GestureDetector(
+          onTap: () async {
+            if (!AuthService().isLoggedIn) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Login untuk menyimpan favorit',
+                    style: GoogleFonts.dmSans(fontSize: 13),
+                  ),
+                  backgroundColor: AppColors.textPrimary,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              return;
+            }
+            await FavoriteService().toggleFavorite(kost);
+          },
+          child: Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.92),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              isFav ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+              size: 18,
+              color: isFav ? const Color(0xFFE53935) : AppColors.textSecondary,
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -65,13 +139,13 @@ class _KostImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = kost.validImageUrl;
-    if (url != null) {
+    final rawUrl = kost.validImageUrl;
+    if (rawUrl != null) {
       return SizedBox(
         height: 136,
         width: double.infinity,
         child: Image.network(
-          url,
+          _imageUrl(rawUrl),
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => _buildPlaceholder(),
           loadingBuilder: (_, child, loadingProgress) {
@@ -121,11 +195,29 @@ class _KostImage extends StatelessWidget {
               ),
             ),
           ),
-          Center(
-            child: Icon(
-              Icons.home_rounded,
-              size: 52,
-              color: Colors.white.withOpacity(0.4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.home_rounded,
+                  size: 32,
+                  color: Colors.white.withOpacity(0.5),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  kost.title,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ],

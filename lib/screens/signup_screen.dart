@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../data/auth_service.dart';
+import '../data/favorite_service.dart';
 import '../theme/app_theme.dart';
 import 'main_navigator.dart';
 
@@ -58,6 +59,8 @@ class _SignupScreenState extends State<SignupScreen> {
       });
       return;
     }
+
+    FavoriteService().loadFavorites();
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MainNavigator()),
