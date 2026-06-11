@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
-import 'placeholder_screen.dart';
 import 'kosts_map_screen.dart';
+import 'favorite_screen.dart';
 import 'profile_screen.dart';
 
 class MainNavigator extends StatefulWidget {
@@ -18,11 +18,7 @@ class _MainNavigatorState extends State<MainNavigator> {
   final List<Widget> _screens = const [
     HomeScreen(),
     KostsMapScreen(),
-    PlaceholderScreen(
-      title: 'Favorit',
-      icon: Icons.favorite_outline_rounded,
-      message: 'Kost yang kamu simpan akan tampil di sini',
-    ),
+    FavoriteScreen(),
     ProfileScreen(),
   ];
 
