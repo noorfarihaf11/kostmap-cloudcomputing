@@ -3,20 +3,21 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF724A24);
-  static const Color background = Color(0xFFFFFFFF);
-  static const Color surface = Color(0xFFFAFAFA);
-  static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF9E9E9E);
-  static const Color chipBackground = Color(0xFFF3EBE3);
-  static const Color divider = Color(0xFFF0F0F0);
+  static const Color primary = Color(0xFFC59F70); // Premium Gold
+  static const Color secondary = Color(0xFF123424); // Deep Forest Green
+  static const Color background = Color(0xFFFAF8F5); // Warm Luxury Off-White
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color textPrimary = Color(0xFF1A2A20); // Deep Forest Charcoal
+  static const Color textSecondary = Color(0xFF75857C); // Sage Grey
+  static const Color chipBackground = Color(0xFFEFE8DE);
+  static const Color divider = Color(0xFFEAE5DE);
 
   static const Color categoryPutraBackground = Color(0xFFE3F0FB);
   static const Color categoryPutraText = Color(0xFF1565C0);
   static const Color categoryPutriBackground = Color(0xFFFDE8F0);
   static const Color categoryPutriText = Color(0xFFC2185B);
-  static const Color categoryCampurBackground = Color(0xFFF3EBE3);
-  static const Color categoryCampurText = Color(0xFF724A24);
+  static const Color categoryCampurBackground = Color(0xFFEFE8DE);
+  static const Color categoryCampurText = Color(0xFFC59F70);
 }
 
 class AppTheme {

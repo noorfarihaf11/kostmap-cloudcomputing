@@ -68,24 +68,22 @@ class _MapScreenState extends State<MapScreen> {
         return;
       }
 
-      // Get initial position
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 10),
-        ),
-      );
-
-      if (mounted) {
-        final userLatLng = LatLng(pos.latitude, pos.longitude);
+      // 1. Get last known position instantly for zero-latency loading
+      Position? lastPos;
+      try {
+        lastPos = await Geolocator.getLastKnownPosition();
+      } catch (_) {
+        // Fail silently on unsupported platforms (like Web/Windows)
+      }
+      if (lastPos != null && mounted) {
         setState(() {
-          _userLocation = userLatLng;
+          _userLocation = LatLng(lastPos!.latitude, lastPos!.longitude);
           _loadingLocation = false;
         });
         _calculateRoute();
       }
 
-      // Listen to position updates in real-time
+      // 2. Listen to position stream updates in real-time
       const locationSettings = LocationSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 3, // Update when user moves 3 meters
@@ -94,14 +92,48 @@ class _MapScreenState extends State<MapScreen> {
         locationSettings: locationSettings,
       ).listen((Position position) {
         if (mounted) {
+          final isFirstLocation = _userLocation == null;
           setState(() {
             _userLocation = LatLng(position.latitude, position.longitude);
+            _loadingLocation = false;
           });
-          _calculateRouteQuietly();
+          if (isFirstLocation) {
+            _calculateRoute();
+          } else {
+            _calculateRouteQuietly();
+          }
         }
       });
+
+      // 3. Asynchronously request current position as fallback/upgrade
+      Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 4),
+        ),
+      ).then((pos) {
+        if (mounted) {
+          final isFirstLocation = _userLocation == null;
+          setState(() {
+            _userLocation = LatLng(pos.latitude, pos.longitude);
+            _loadingLocation = false;
+          });
+          if (isFirstLocation) {
+            _calculateRoute();
+          } else {
+            _calculateRouteQuietly();
+          }
+        }
+      }).catchError((_) {
+        if (mounted && _userLocation == null) {
+          setState(() => _loadingLocation = false);
+        }
+      });
+
     } catch (_) {
-      if (mounted) setState(() => _loadingLocation = false);
+      if (mounted && _userLocation == null) {
+        setState(() => _loadingLocation = false);
+      }
     }
   }
 
@@ -192,8 +224,8 @@ class _MapScreenState extends State<MapScreen> {
                   polylines: [
                     Polyline(
                       points: _routeResult!.points,
-                      color: AppColors.primary,
-                      strokeWidth: 4.5,
+                      color: const Color(0xFF0066FF),
+                      strokeWidth: 5.5,
                       borderColor: Colors.white,
                       borderStrokeWidth: 1.5,
                     ),
@@ -204,7 +236,7 @@ class _MapScreenState extends State<MapScreen> {
                   polylines: [
                     Polyline(
                       points: [_userLocation!, kostPos],
-                      color: AppColors.primary.withOpacity(0.7),
+                      color: const Color(0xFF0066FF).withOpacity(0.7),
                       strokeWidth: 3.0,
                     ),
                   ],

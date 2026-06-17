@@ -1,3 +1,5 @@
+import 'dart:ui';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,8 +7,13 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/kost_model.dart';
 import '../theme/app_theme.dart';
-import '../widgets/category_badge.dart';
 import 'map_screen.dart';
+
+String _imageUrl(String rawUrl) {
+  if (!kIsWeb) return rawUrl;
+  final encoded = Uri.encodeComponent(rawUrl);
+  return 'http://localhost:3000/api/image-proxy?url=$encoded';
+}
 
 class DetailScreen extends StatelessWidget {
   final Kost kost;
@@ -16,381 +23,513 @@ class DetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          CustomScrollView(
-            slivers: [
-              _buildMapSliver(),
-              SliverToBoxAdapter(child: _buildContent(context)),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
+          // 1. Full-bleed Background Image
+          Positioned.fill(
+            child: kost.validImageUrl != null
+                ? Image.network(
+                    _imageUrl(kost.validImageUrl!),
+                    fit: BoxFit.cover,
+                  )
+                : Container(color: Colors.grey.shade900),
           ),
-          _buildBackButton(context),
-          _buildBottomBar(context),
+          
+          // 2. Top Gradient for Back Button visibility
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 120,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black.withOpacity(0.6), Colors.transparent],
+                ),
+              ),
+            ),
+          ),
+          
+          // 3. Top Bar (Back Button & Actions)
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildGlassButton(
+                    icon: Icons.arrow_back_ios_new_rounded,
+                    onTap: () => Navigator.pop(context),
+                  ),
+                  Row(
+                    children: [
+                      _buildGlassButton(
+                        icon: Icons.share_rounded,
+                        onTap: () {}, // share
+                      ),
+                      const SizedBox(width: 12),
+                      _buildGlassButton(
+                        icon: Icons.favorite_border_rounded,
+                        onTap: () {}, // favorite
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 4. Draggable Scrollable Sheet (The Content)
+          DraggableScrollableSheet(
+            initialChildSize: 0.55,
+            minChildSize: 0.3,
+            maxChildSize: 0.9,
+            builder: (context, scrollController) {
+              return ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      border: Border(
+                        top: BorderSide(color: Colors.white.withOpacity(0.2), width: 1.5),
+                      ),
+                    ),
+                    child: Stack(
+                      children: [
+                        CustomScrollView(
+                          controller: scrollController,
+                          physics: const BouncingScrollPhysics(),
+                          slivers: [
+                            SliverToBoxAdapter(
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 16),
+                                  // Drag Handle
+                                  Container(
+                                    width: 48,
+                                    height: 5,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.3),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                ],
+                              ),
+                            ),
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              sliver: SliverList(
+                                delegate: SliverChildListDelegate([
+                                  _buildHeader(),
+                                  const SizedBox(height: 24),
+                                  _buildDivider(),
+                                  const SizedBox(height: 24),
+                                  _buildHostInfo(),
+                                  const SizedBox(height: 24),
+                                  _buildDivider(),
+                                  const SizedBox(height: 24),
+                                  if (kost.description != null && kost.description!.isNotEmpty) ...[
+                                    _buildDescription(),
+                                    const SizedBox(height: 24),
+                                    _buildDivider(),
+                                    const SizedBox(height: 24),
+                                  ],
+                                  _buildAmenities(),
+                                  const SizedBox(height: 24),
+                                  _buildDivider(),
+                                  const SizedBox(height: 24),
+                                  _buildMapPreview(context),
+                                  const SizedBox(height: 120), // Bottom padding for sticky bar
+                                ]),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          
+          // 5. Sticky Bottom Bar (Glassmorphism)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: _buildStickyBottomBar(context),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMapSliver() {
-    final pos = LatLng(kost.lat, kost.lng);
-    final imageUrl = kost.validImageUrl;
-
-    Widget background = imageUrl != null
-        ? Image.network(
-            imageUrl,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-            errorBuilder: (_, __, ___) => _buildOsmPreview(pos),
-          )
-        : _buildOsmPreview(pos);
-
-    return SliverAppBar(
-      expandedHeight: 260,
-      pinned: false,
-      automaticallyImplyLeading: false,
-      backgroundColor: Colors.transparent,
-      flexibleSpace: FlexibleSpaceBar(background: background),
-    );
-  }
-
-  Widget _buildOsmPreview(LatLng pos) {
-    return FlutterMap(
-      options: MapOptions(
-        initialCenter: pos,
-        initialZoom: 15.5,
-        interactionOptions: const InteractionOptions(
-          flags: InteractiveFlag.none,
-        ),
-      ),
-      children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.example.kostmap',
-        ),
-        MarkerLayer(
-          markers: [
-            Marker(
-              point: pos,
-              width: 40,
-              height: 40,
-              child: const Icon(
-                Icons.location_pin,
-                color: AppColors.primary,
-                size: 40,
-              ),
+  Widget _buildGlassButton({required IconData icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
             ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBackButton(BuildContext context) {
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + 12,
-      left: 16,
-      child: GestureDetector(
-        onTap: () => Navigator.pop(context),
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 18,
-            color: AppColors.textPrimary,
+            child: Icon(icon, color: Colors.white, size: 20),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildBottomBar(BuildContext context) {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          12,
-          20,
-          MediaQuery.of(context).padding.bottom + 16,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: ElevatedButton.icon(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MapScreen(
-                lat: kost.lat,
-                lng: kost.lng,
-                title: kost.title,
-                distanceKm: kost.distanceKm,
-              ),
-            ),
-          ),
-          icon: const Icon(Icons.map_rounded, size: 18),
-          label: Text(
-            'Lihat di Peta',
-            style: GoogleFonts.dmSans(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            elevation: 0,
-          ),
-        ),
-      ),
-    );
+  Widget _buildDivider() {
+    return Divider(height: 1, color: Colors.white.withOpacity(0.15));
   }
 
-  Widget _buildContent(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildNameSection(),
-            const SizedBox(height: 16),
-            _buildInfoCard(),
-            if (kost.description != null && kost.description!.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              _buildDescriptionSection(),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNameSection() {
+  Widget _buildHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (kost.label.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: _getLabelColor(kost.label),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              kost.label.toUpperCase(),
+              style: GoogleFonts.dmSans(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        Text(
+          kost.title,
+          style: GoogleFonts.dmSans(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 12),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            const Icon(Icons.star_rounded, size: 18, color: Colors.amber),
+            const SizedBox(width: 6),
+            Text(
+              '4.8',
+              style: GoogleFonts.dmSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text('·', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white54)),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
-                kost.title,
+                kost.displayAddress,
                 style: GoogleFonts.dmSans(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white70,
+                  decoration: TextDecoration.underline,
+                  decorationColor: Colors.white54,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 10),
-            CategoryBadge(category: kost.label, fontSize: 12),
           ],
         ),
-        const SizedBox(height: 6),
-        Text(
-          kost.formattedPrice,
-          style: GoogleFonts.dmSans(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.primary,
+      ],
+    );
+  }
+
+  Widget _buildHostInfo() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Dikelola oleh Pemilik Kost',
+                style: GoogleFonts.dmSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                kost.label.isNotEmpty ? 'Kategori: ${kost.label}' : 'Kost Tersedia',
+                style: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
           ),
         ),
+        const SizedBox(width: 16),
+        CircleAvatar(
+          radius: 28,
+          backgroundColor: Colors.white.withOpacity(0.2),
+          child: const Icon(Icons.person_rounded, color: Colors.white, size: 36),
+        ),
       ],
     );
   }
 
-  Widget _buildInfoCard() {
-    final rows = <Widget>[
-      _InfoRow(
-        icon: Icons.location_on_outlined,
-        label: 'Alamat',
-        value: kost.displayAddress,
-      ),
-      if (kost.neighborhood != null) ...[
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 10),
-          child: Divider(color: AppColors.divider, height: 1),
-        ),
-        _InfoRow(
-          icon: Icons.place_outlined,
-          label: 'Kelurahan',
-          value: kost.neighborhood!,
-        ),
-      ],
-      const Padding(
-        padding: EdgeInsets.symmetric(vertical: 10),
-        child: Divider(color: AppColors.divider, height: 1),
-      ),
-      _InfoRow(
-        icon: Icons.my_location_rounded,
-        label: 'Koordinat',
-        value: '${kost.lat.toStringAsFixed(5)}, ${kost.lng.toStringAsFixed(5)}',
-      ),
-      if (kost.distanceKm != null) ...[
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 10),
-          child: Divider(color: AppColors.divider, height: 1),
-        ),
-        _InfoRow(
-          icon: Icons.near_me_rounded,
-          label: 'Jarak dari kamu',
-          value: kost.formattedDistance,
-        ),
-      ],
-      if (kost.phone != null) ...[
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 10),
-          child: Divider(color: AppColors.divider, height: 1),
-        ),
-        _InfoRow(
-          icon: Icons.phone_outlined,
-          label: 'Telepon',
-          value: kost.phone!,
-          onTap: () => launchUrl(Uri.parse('tel:${kost.phone}')),
-        ),
-      ],
-      if (kost.website != null) ...[
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 10),
-          child: Divider(color: AppColors.divider, height: 1),
-        ),
-        _InfoRow(
-          icon: Icons.language_outlined,
-          label: 'Website',
-          value: kost.website!,
-          onTap: () => launchUrl(Uri.parse(kost.website!),
-              mode: LaunchMode.externalApplication),
-        ),
-      ],
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.divider),
-      ),
-      child: Column(children: rows),
-    );
-  }
-
-  Widget _buildDescriptionSection() {
+  Widget _buildDescription() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Deskripsi',
+          'Tentang tempat ini',
           style: GoogleFonts.dmSans(
-            fontSize: 16,
+            fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+            color: Colors.white,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Text(
           kost.description!,
           style: GoogleFonts.dmSans(
-            fontSize: 14,
-            color: AppColors.textSecondary,
+            fontSize: 15,
+            fontWeight: FontWeight.w400,
+            color: Colors.white.withOpacity(0.85),
             height: 1.6,
           ),
         ),
       ],
     );
   }
-}
 
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final VoidCallback? onTap;
+  Widget _buildAmenities() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Fasilitas yang ditawarkan',
+          style: GoogleFonts.dmSans(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildAmenityRow(Icons.wifi_rounded, 'Wifi Cepat'),
+        const SizedBox(height: 16),
+        _buildAmenityRow(Icons.bed_rounded, 'Kamar Tidur Nyaman'),
+        const SizedBox(height: 16),
+        _buildAmenityRow(Icons.shower_rounded, 'Kamar Mandi Dalam'),
+        if (kost.phone != null) ...[
+          const SizedBox(height: 16),
+          _buildAmenityRow(
+            Icons.phone_rounded,
+            'Telepon: ${kost.phone}',
+            onTap: () => launchUrl(Uri.parse('tel:${kost.phone}')),
+          ),
+        ],
+      ],
+    );
+  }
 
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildAmenityRow(IconData icon, String text, {VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.chipBackground,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 16, color: AppColors.primary),
-          ),
-          const SizedBox(width: 12),
+          Icon(icon, size: 26, color: Colors.white),
+          const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 13,
-                    color: onTap != null ? AppColors.primary : AppColors.textPrimary,
-                    fontWeight: FontWeight.w500,
-                    decoration: onTap != null ? TextDecoration.underline : null,
-                  ),
-                ),
-              ],
+            child: Text(
+              text,
+              style: GoogleFonts.dmSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+                decoration: onTap != null ? TextDecoration.underline : null,
+              ),
             ),
           ),
         ],
       ),
     );
   }
-}
 
+  Widget _buildMapPreview(BuildContext context) {
+    final pos = LatLng(kost.lat, kost.lng);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Lokasi',
+          style: GoogleFonts.dmSans(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (kost.neighborhood != null) ...[
+          Text(
+            kost.neighborhood!,
+            style: GoogleFonts.dmSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w400,
+              color: Colors.white70,
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: SizedBox(
+            height: 200,
+            width: double.infinity,
+            child: IgnorePointer(
+              ignoring: true, // make it just a preview
+              child: FlutterMap(
+                options: MapOptions(
+                  initialCenter: pos,
+                  initialZoom: 15.5,
+                  interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.example.kostmap',
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: pos,
+                        width: 48,
+                        height: 48,
+                        child: const Icon(
+                          Icons.location_on_rounded,
+                          color: AppColors.primary,
+                          size: 48,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStickyBottomBar(BuildContext context) {
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.6),
+            border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+          ),
+          padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).padding.bottom + 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    kost.formattedPrice,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if (kost.distanceKm != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      kost.formattedDistance,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MapScreen(
+                      lat: kost.lat,
+                      lng: kost.lng,
+                      title: kost.title,
+                      distanceKm: kost.distanceKm,
+                    ),
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.secondary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Lihat Rute',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getLabelColor(String label) {
+    switch (label.toLowerCase()) {
+      case 'putra':
+        return AppColors.categoryPutraText;
+      case 'putri':
+        return AppColors.categoryPutriText;
+      case 'campur':
+      default:
+        return AppColors.categoryCampurText;
+    }
+  }
+}

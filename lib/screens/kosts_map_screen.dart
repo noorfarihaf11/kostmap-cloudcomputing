@@ -84,21 +84,20 @@ class _KostsMapScreenState extends State<KostsMapScreen> {
       }
       if (permission == LocationPermission.deniedForever) return;
 
-      // Get initial location
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 10),
-        ),
-      );
-
-      if (mounted) {
+      // 1. Get last known position instantly for zero-latency loading
+      Position? lastPos;
+      try {
+        lastPos = await Geolocator.getLastKnownPosition();
+      } catch (_) {
+        // Fail silently on unsupported platforms (like Web/Windows)
+      }
+      if (lastPos != null && mounted) {
         setState(() {
-          _userLocation = LatLng(pos.latitude, pos.longitude);
+          _userLocation = LatLng(lastPos!.latitude, lastPos!.longitude);
         });
       }
 
-      // Start listening to location updates in real-time
+      // 2. Start listening to location updates in real-time
       const locationSettings = LocationSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 3, // Update when user moves 3 meters
@@ -116,6 +115,24 @@ class _KostsMapScreenState extends State<KostsMapScreen> {
           }
         }
       });
+
+      // 3. Asynchronously request current position in background as upgrade
+      Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 4),
+        ),
+      ).then((pos) {
+        if (mounted) {
+          setState(() {
+            _userLocation = LatLng(pos.latitude, pos.longitude);
+          });
+          if (_selectedKost != null && _routeResult != null) {
+            _calculateRouteQuietly(_selectedKost!);
+          }
+        }
+      }).catchError((_) {});
+
     } catch (_) {
       // Fail silently
     }
@@ -328,8 +345,8 @@ class _KostsMapScreenState extends State<KostsMapScreen> {
             polylines: [
               Polyline(
                 points: _routeResult!.points,
-                color: AppColors.primary,
-                strokeWidth: 4.5,
+                color: const Color(0xFF0066FF),
+                strokeWidth: 5.5,
                 borderColor: Colors.white,
                 borderStrokeWidth: 1.5,
               ),
@@ -368,7 +385,7 @@ class _KostsMapScreenState extends State<KostsMapScreen> {
               ),
               child: const Icon(
                 Icons.map_rounded,
-                color: AppColors.primary,
+                color: AppColors.secondary,
                 size: 20,
               ),
             ),
@@ -456,7 +473,7 @@ class _KostsMapScreenState extends State<KostsMapScreen> {
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
-                      color: AppColors.primary,
+                      color: AppColors.secondary,
                       strokeWidth: 2.5,
                     ),
                   ),
@@ -610,8 +627,8 @@ class _KostsMapScreenState extends State<KostsMapScreen> {
                       style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700),
                     ),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary, width: 1.5),
+                      foregroundColor: AppColors.secondary,
+                      side: const BorderSide(color: AppColors.secondary, width: 1.5),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
@@ -634,7 +651,7 @@ class _KostsMapScreenState extends State<KostsMapScreen> {
                       style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.secondary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -726,7 +743,7 @@ class _KostsMapScreenState extends State<KostsMapScreen> {
             ElevatedButton(
               onPressed: _loadKosts,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppColors.secondary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),

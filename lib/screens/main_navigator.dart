@@ -25,79 +25,75 @@ class _MainNavigatorState extends State<MainNavigator> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // IMPORTANT: Allows body to go behind the bottom nav
+      backgroundColor: AppColors.background,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildFloatingDock(),
     );
   }
 
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: const Border(
-          top: BorderSide(color: Color(0xFFF0F0F0), width: 1),
+  Widget _buildFloatingDock() {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 24, left: 32, right: 32),
+        child: Container(
+          height: 64,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildNavItem(0, Icons.home_outlined, Icons.home_rounded),
+                _buildNavItem(1, Icons.map_outlined, Icons.map_rounded),
+                _buildNavItem(2, Icons.favorite_outline_rounded, Icons.favorite_rounded),
+                _buildNavItem(3, Icons.person_outline_rounded, Icons.person_rounded),
+              ],
+            ),
+          ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textSecondary,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        type: BottomNavigationBarType.fixed,
-        items: [
-          _navItem(
-            label: 'Beranda',
-            icon: Icons.home_outlined,
-            activeIcon: Icons.home_rounded,
-            index: 0,
-          ),
-          _navItem(
-            label: 'Peta',
-            icon: Icons.map_outlined,
-            activeIcon: Icons.map_rounded,
-            index: 1,
-          ),
-          _navItem(
-            label: 'Favorit',
-            icon: Icons.favorite_outline_rounded,
-            activeIcon: Icons.favorite_rounded,
-            index: 2,
-          ),
-          _navItem(
-            label: 'Profil',
-            icon: Icons.person_outline_rounded,
-            activeIcon: Icons.person_rounded,
-            index: 3,
-          ),
-        ],
       ),
     );
   }
 
-  BottomNavigationBarItem _navItem({
-    required String label,
-    required IconData icon,
-    required IconData activeIcon,
-    required int index,
-  }) {
-    return BottomNavigationBarItem(
-      icon: Icon(icon, size: 24),
-      activeIcon: Icon(activeIcon, size: 24),
-      label: label,
-      backgroundColor: Colors.transparent,
-      tooltip: '',
+  Widget _buildNavItem(int index, IconData iconOutlined, IconData iconRounded) {
+    final isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 60,
+        height: 64,
+        child: Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutBack,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.secondary : Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isSelected ? iconRounded : iconOutlined,
+              color: isSelected ? Colors.white : AppColors.textSecondary.withOpacity(0.6),
+              size: isSelected ? 22 : 24,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

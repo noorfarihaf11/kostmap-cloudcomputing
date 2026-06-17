@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../data/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
@@ -51,8 +52,12 @@ class ProfileScreen extends StatelessWidget {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: AppColors.secondary,
             borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: AppColors.primary.withOpacity(0.4),
+              width: 1.5,
+            ),
           ),
           child: Center(
             child: Text(
@@ -142,13 +147,13 @@ class ProfileScreen extends StatelessWidget {
           context,
           icon: Icons.help_outline_rounded,
           label: 'Bantuan',
-          onTap: () {},
+          onTap: () => _showHelpBottomSheet(context),
         ),
         _menuTile(
           context,
           icon: Icons.info_outline_rounded,
           label: 'Tentang Aplikasi',
-          onTap: () {},
+          onTap: () => _showAboutBottomSheet(context),
         ),
         const SizedBox(height: 8),
         _menuTile(
@@ -341,6 +346,221 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFaqItem(String question, String answer) {
+    return Theme(
+      data: ThemeData().copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        title: Text(
+          question,
+          style: GoogleFonts.dmSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        childrenPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        expandedAlignment: Alignment.topLeft,
+        children: [
+          Text(
+            answer,
+            style: GoogleFonts.dmSans(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHelpBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Pusat Bantuan',
+                style: GoogleFonts.dmSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Temukan jawaban atas pertanyaan umum atau hubungi tim dukungan kami.',
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildFaqItem(
+                'Bagaimana cara menghubungi pemilik kost?',
+                'Anda dapat menekan tombol telepon atau melihat rute pada halaman detail kost untuk menghubungi pemilik secara langsung.',
+              ),
+              _buildFaqItem(
+                'Apakah KostMap memungut biaya transaksi?',
+                'Tidak. KostMap adalah platform pencarian gratis. Semua transaksi sewa dilakukan langsung antara Anda dan pemilik kost tanpa perantara.',
+              ),
+              _buildFaqItem(
+                'Bagaimana cara menyimpan kost favorit?',
+                'Masuk ke akun Anda, lalu tekan ikon hati di sudut kanan atas kartu kost untuk menyimpannya ke daftar favorit.',
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final url = Uri.parse('https://wa.me/6281234567890?text=Halo%20Admin%20KostMap,%20saya%20butuh%20bantuan...');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url);
+                    }
+                  },
+                  icon: const Icon(Icons.support_agent_rounded),
+                  label: const Text('Hubungi Support WhatsApp'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAboutBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.map_rounded,
+                  color: AppColors.primary,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'KostMap',
+                style: GoogleFonts.dmSans(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                'Versi 1.0.0-prak',
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'KostMap adalah aplikasi pencarian kost berbasis lokasi terintegrasi. Memudahkan mahasiswa menemukan tempat tinggal terbaik di sekitar wilayah kampus dengan navigasi peta yang interaktif dan detail informasi yang lengkap.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    color: AppColors.textPrimary.withOpacity(0.8),
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Divider(color: AppColors.divider),
+              const SizedBox(height: 12),
+              Text(
+                'Dikembangkan oleh:',
+                style: GoogleFonts.dmSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Kelompok Praktikum Cloud Computing',
+                style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                '© 2026 KostMap. All rights reserved.',
+                style: GoogleFonts.dmSans(
+                  fontSize: 10,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
     );
   }
 }
