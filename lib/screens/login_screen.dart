@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../data/auth_service.dart';
@@ -63,32 +64,70 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 48),
-                _buildHeader(),
-                const SizedBox(height: 40),
-                _buildForm(),
-                const SizedBox(height: 24),
-                if (_errorMessage != null) _buildError(),
-                if (_errorMessage != null) const SizedBox(height: 16),
-                _buildLoginButton(),
-                const SizedBox(height: 32),
-                _buildDivider(),
-                const SizedBox(height: 24),
-                _buildSignUpLink(),
-                const SizedBox(height: 32),
-              ],
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.network(
+              'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1200&auto=format&fit=crop',
+              fit: BoxFit.cover,
             ),
           ),
-        ),
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black.withOpacity(0.3),
+                    Colors.black.withOpacity(0.7),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(40),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(40),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildHeader(),
+                            const SizedBox(height: 40),
+                            _buildForm(),
+                            const SizedBox(height: 24),
+                            if (_errorMessage != null) _buildError(),
+                            if (_errorMessage != null) const SizedBox(height: 16),
+                            _buildLoginButton(),
+                            const SizedBox(height: 32),
+                            _buildSignUpLink(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -98,13 +137,13 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 52,
-          height: 52,
+          width: 56,
+          height: 56,
           decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(14),
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(16),
           ),
-          child: const Icon(Icons.home_rounded, color: Colors.white, size: 28),
+          child: const Icon(Icons.home_rounded, color: Colors.white, size: 32),
         ),
         const SizedBox(height: 24),
         Text(
@@ -112,15 +151,15 @@ class _LoginScreenState extends State<LoginScreen> {
           style: GoogleFonts.dmSans(
             fontSize: 28,
             fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+            color: Colors.white,
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
-          'Masuk untuk menemukan kost terbaik\ndi sekitarmu.',
+          'Masuk untuk menemukan kost terbaik di sekitarmu.',
           style: GoogleFonts.dmSans(
             fontSize: 14,
-            color: AppColors.textSecondary,
+            color: Colors.white.withOpacity(0.8),
             height: 1.5,
           ),
         ),
@@ -138,9 +177,10 @@ class _LoginScreenState extends State<LoginScreen> {
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
-          decoration: const InputDecoration(
-            hintText: 'contoh@email.com',
-            prefixIcon: Icon(Icons.email_outlined),
+          style: GoogleFonts.dmSans(color: Colors.white),
+          decoration: _inputDecoration(
+            hint: 'contoh@email.com',
+            icon: Icons.email_outlined,
           ),
           validator: (v) {
             if (v == null || v.trim().isEmpty) return 'Email tidak boleh kosong';
@@ -156,18 +196,17 @@ class _LoginScreenState extends State<LoginScreen> {
           obscureText: _obscurePassword,
           textInputAction: TextInputAction.done,
           onFieldSubmitted: (_) => _handleLogin(),
-          decoration: InputDecoration(
-            hintText: '••••••••',
-            prefixIcon: const Icon(Icons.lock_outline_rounded),
+          style: GoogleFonts.dmSans(color: Colors.white),
+          decoration: _inputDecoration(
+            hint: '••••••••',
+            icon: Icons.lock_outline_rounded,
+          ).copyWith(
             suffixIcon: IconButton(
               icon: Icon(
-                _obscurePassword
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                color: AppColors.textSecondary,
+                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                color: Colors.white70,
               ),
-              onPressed: () =>
-                  setState(() => _obscurePassword = !_obscurePassword),
+              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
             ),
           ),
           validator: (v) {
@@ -180,26 +219,46 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  InputDecoration _inputDecoration({required String hint, required IconData icon}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: GoogleFonts.dmSans(color: Colors.white54),
+      prefixIcon: Icon(icon, color: Colors.white70),
+      filled: true,
+      fillColor: Colors.white.withOpacity(0.1),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.white, width: 1.5),
+      ),
+    );
+  }
+
   Widget _buildError() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF0F0),
+        color: const Color(0xFFB00020).withOpacity(0.8),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFCDD2)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded,
-              color: Color(0xFFB00020), size: 18),
+          const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               _errorMessage!,
               style: GoogleFonts.dmSans(
                 fontSize: 13,
-                color: const Color(0xFFB00020),
+                color: Colors.white,
               ),
             ),
           ),
@@ -211,36 +270,31 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildLoginButton() {
     return SizedBox(
       width: double.infinity,
+      height: 56,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleLogin,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.primary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+        ),
         child: _isLoading
             ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2),
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
               )
-            : const Text('Masuk'),
+            : Text(
+                'Masuk',
+                style: GoogleFonts.dmSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
       ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Row(
-      children: [
-        const Expanded(child: Divider(color: AppColors.divider)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'atau',
-            style: GoogleFonts.dmSans(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-        const Expanded(child: Divider(color: AppColors.divider)),
-      ],
     );
   }
 
@@ -253,7 +307,7 @@ class _LoginScreenState extends State<LoginScreen> {
             'Belum punya akun? ',
             style: GoogleFonts.dmSans(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: Colors.white.withOpacity(0.8),
             ),
           ),
           GestureDetector(
@@ -265,8 +319,8 @@ class _LoginScreenState extends State<LoginScreen> {
               'Daftar sekarang',
               style: GoogleFonts.dmSans(
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
               ),
             ),
           ),
@@ -281,7 +335,7 @@ class _LoginScreenState extends State<LoginScreen> {
       style: GoogleFonts.dmSans(
         fontSize: 13,
         fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
+        color: Colors.white,
       ),
     );
   }

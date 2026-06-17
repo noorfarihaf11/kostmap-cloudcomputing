@@ -5,7 +5,6 @@ import '../data/auth_service.dart';
 import '../data/favorite_service.dart';
 import '../models/kost_model.dart';
 import '../theme/app_theme.dart';
-import 'category_badge.dart';
 
 String _imageUrl(String rawUrl) {
   if (!kIsWeb) return rawUrl;
@@ -16,75 +15,213 @@ String _imageUrl(String rawUrl) {
 class KostCard extends StatelessWidget {
   final Kost kost;
   final VoidCallback onTap;
+  final bool isHorizontal;
 
-  const KostCard({super.key, required this.kost, required this.onTap});
+  const KostCard({
+    super.key,
+    required this.kost,
+    required this.onTap,
+    this.isHorizontal = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final height = isHorizontal ? 300.0 : 260.0;
+    final width = isHorizontal ? 240.0 : double.infinity;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        height: height,
+        width: width,
+        margin: isHorizontal ? const EdgeInsets.only(right: 16) : EdgeInsets.zero,
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF724A24).withOpacity(0.06),
+              color: Colors.black.withOpacity(0.15),
               blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
+              offset: const Offset(0, 10),
+            )
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              Stack(
-                children: [
-                  _KostImage(kost: kost),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: _FavoriteButton(kost: kost),
+              _KostImage(kost: kost),
+              
+              // Dark gradient overlay from bottom
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.8),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.4, 1.0],
                   ),
-                ],
+                ),
               ),
-              _CardContent(kost: kost),
+
+              // Badges
+              Positioned(
+                top: 16,
+                left: 16,
+                child: Row(
+                  children: [
+                    if (kost.label.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _getLabelColor(kost.label),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          kost.label.toUpperCase(),
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // Favorite Heart
+              Positioned(
+                top: 16,
+                right: 16,
+                child: _FavoriteButton(kost: kost),
+              ),
+
+              // Content at the bottom
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      kost.title,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_rounded, color: Colors.white70, size: 14),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            kost.displayAddress,
+                            style: GoogleFonts.dmSans(
+                              fontSize: 13,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (kost.distanceKm != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              kost.formattedDistance,
+                              style: GoogleFonts.dmSans(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          )
+                        else
+                          const SizedBox(),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            kost.formattedPrice,
+                            style: GoogleFonts.dmSans(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            textAlign: TextAlign.right,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+
+  Color _getLabelColor(String label) {
+    switch (label.toLowerCase()) {
+      case 'putra':
+        return AppColors.categoryPutraText;
+      case 'putri':
+        return AppColors.categoryPutriText;
+      case 'campur':
+      default:
+        return AppColors.categoryCampurText;
+    }
+  }
 }
 
-class _FavoriteButton extends StatelessWidget {
+class _FavoriteButton extends StatefulWidget {
   final Kost kost;
   const _FavoriteButton({required this.kost});
 
+  @override
+  State<_FavoriteButton> createState() => _FavoriteButtonState();
+}
+
+class _FavoriteButtonState extends State<_FavoriteButton> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: FavoriteService(),
       builder: (context, _) {
-        final isFav = FavoriteService().isFavorite(kost.id);
+        final isFav = FavoriteService().isFavorite(widget.kost.id);
         return GestureDetector(
           onTap: () async {
             if (!AuthService().isLoggedIn) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(
-                    'Login untuk menyimpan favorit',
-                    style: GoogleFonts.dmSans(fontSize: 13),
-                  ),
-                  backgroundColor: AppColors.textPrimary,
+                  content: Text('Login untuk menyimpan favorit',
+                      style: GoogleFonts.dmSans(fontSize: 13)),
+                  backgroundColor: AppColors.primary,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
@@ -93,26 +230,18 @@ class _FavoriteButton extends StatelessWidget {
               );
               return;
             }
-            await FavoriteService().toggleFavorite(kost);
+            await FavoriteService().toggleFavorite(widget.kost);
           },
           child: Container(
-            width: 34,
-            height: 34,
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.92),
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              color: isFav ? AppColors.primary : Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
             ),
             child: Icon(
-              isFav ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
-              size: 18,
-              color: isFav ? const Color(0xFFE53935) : AppColors.textSecondary,
+              isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              size: 20,
+              color: Colors.white,
             ),
           ),
         );
@@ -126,33 +255,18 @@ class _KostImage extends StatelessWidget {
 
   const _KostImage({required this.kost});
 
-  List<Color> get _gradientColors {
-    switch (kost.label) {
-      case 'Putra':
-        return [const Color(0xFF8B5E3C), const Color(0xFF5C3D1E)];
-      case 'Putri':
-        return [const Color(0xFFA0647A), const Color(0xFF724A24)];
-      default:
-        return [const Color(0xFF9C6B3C), const Color(0xFF724A24)];
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final rawUrl = kost.validImageUrl;
     if (rawUrl != null) {
-      return SizedBox(
-        height: 136,
-        width: double.infinity,
-        child: Image.network(
-          _imageUrl(rawUrl),
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _buildPlaceholder(),
-          loadingBuilder: (_, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return _buildPlaceholder();
-          },
-        ),
+      return Image.network(
+        _imageUrl(rawUrl),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildPlaceholder(),
+        loadingBuilder: (_, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return _buildPlaceholder();
+        },
       );
     }
     return _buildPlaceholder();
@@ -160,178 +274,13 @@ class _KostImage extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return Container(
-      height: 136,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: _gradientColors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+      color: Colors.grey.shade300,
+      child: Center(
+        child: Icon(
+          Icons.home_rounded,
+          size: 48,
+          color: Colors.grey.shade400,
         ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -16,
-            top: -16,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
-              ),
-            ),
-          ),
-          Positioned(
-            left: -24,
-            bottom: -24,
-            child: Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.home_rounded,
-                  size: 32,
-                  color: Colors.white.withOpacity(0.5),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  kost.title,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CardContent extends StatelessWidget {
-  final Kost kost;
-
-  const _CardContent({required this.kost});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  kost.title,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              CategoryBadge(category: kost.label),
-            ],
-          ),
-          const SizedBox(height: 5),
-          Row(
-            children: [
-              const Icon(
-                Icons.location_on_outlined,
-                size: 13,
-                color: AppColors.textSecondary,
-              ),
-              const SizedBox(width: 3),
-              Expanded(
-                child: Text(
-                  kost.displayAddress,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                kost.formattedPrice,
-                style: GoogleFonts.dmSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                ),
-              ),
-              if (kost.distanceKm != null)
-                _DistanceBadge(distance: kost.formattedDistance),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DistanceBadge extends StatelessWidget {
-  final String distance;
-
-  const _DistanceBadge({required this.distance});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.chipBackground,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.near_me_rounded,
-            size: 11,
-            color: AppColors.primary,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            distance,
-            style: GoogleFonts.dmSans(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
-            ),
-          ),
-        ],
       ),
     );
   }

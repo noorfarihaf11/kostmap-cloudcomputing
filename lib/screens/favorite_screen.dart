@@ -94,7 +94,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const CircularProgressIndicator(
-              color: AppColors.primary, strokeWidth: 2.5),
+              color: AppColors.secondary, strokeWidth: 2.5),
           const SizedBox(height: 16),
           Text(
             'Memuat favorit...',
@@ -136,7 +136,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
               label: Text('Coba Lagi',
                   style: GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppColors.secondary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
@@ -219,7 +219,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                   MaterialPageRoute(builder: (_) => const LoginScreen()),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: AppColors.secondary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
