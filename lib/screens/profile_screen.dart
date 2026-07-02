@@ -13,6 +13,7 @@ class ProfileScreen extends StatelessWidget {
     return ListenableBuilder(
       listenable: AuthService(),
       builder: (context, _) {
+        final isLoggedIn = AuthService().isLoggedIn;
         final user = AuthService().currentUser;
 
         return Scaffold(
@@ -22,20 +23,22 @@ class ProfileScreen extends StatelessWidget {
             backgroundColor: AppColors.background,
             elevation: 0,
           ),
-          body: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            children: [
-              const SizedBox(height: 12),
-              _buildAvatar(user?.name ?? 'Pengguna'),
-              const SizedBox(height: 28),
-              if (user != null) ...[
-                _buildInfoCard(user),
-                const SizedBox(height: 20),
-              ],
-              _buildMenuSection(context),
-              const SizedBox(height: 32),
-            ],
-          ),
+          body: isLoggedIn
+              ? ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  children: [
+                    const SizedBox(height: 12),
+                    _buildAvatar(user?.name ?? 'Pengguna'),
+                    const SizedBox(height: 28),
+                    if (user != null) ...[
+                      _buildInfoCard(user),
+                      const SizedBox(height: 20),
+                    ],
+                    _buildMenuSection(context),
+                    const SizedBox(height: 32),
+                  ],
+                )
+              : _buildLoginPrompt(context),
         );
       },
     );
@@ -438,7 +441,7 @@ class ProfileScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () async {
-                    final url = Uri.parse('https://wa.me/6281234567890?text=Halo%20Admin%20KostMap,%20saya%20butuh%20bantuan...');
+                    final url = Uri.parse('https://wa.me/6285778445682?text=Halo%20Admin%20KostMap,%20saya%20butuh%20bantuan...');
                     if (await canLaunchUrl(url)) {
                       await launchUrl(url);
                     }
@@ -561,6 +564,61 @@ class ProfileScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildLoginPrompt(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_outline_rounded,
+                size: 64,
+                color: AppColors.textSecondary.withOpacity(0.4)),
+            const SizedBox(height: 16),
+            Text(
+              'Login diperlukan',
+              style: GoogleFonts.dmSans(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Masuk untuk mengelola profil dan\ninformasi akunmu.',
+              style: GoogleFonts.dmSans(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: 160,
+              child: ElevatedButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.secondary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  elevation: 0,
+                ),
+                child: Text('Masuk',
+                    style:
+                        GoogleFonts.dmSans(fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
