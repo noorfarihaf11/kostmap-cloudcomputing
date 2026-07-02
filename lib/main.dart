@@ -32,9 +32,7 @@ class KostMapApp extends StatelessWidget {
       title: 'KostMap',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
-      home: AuthService().isLoggedIn
-          ? const MainNavigator()
-          : const LoginScreen(),
+      home: const MainNavigator(),
     );
   }
 }
